@@ -19,7 +19,7 @@ library(forecast)     # Version 8.24.0
 
 ####################################################################
 # Air passenger data
-air = read.csv(here("../Datos/AirPassengers.csv"))
+air = read.csv(here("Data/AirPassengers.csv"))
 air = air%>%
   rename("x" = X.Passengers)
 air$t = c(1:144)
