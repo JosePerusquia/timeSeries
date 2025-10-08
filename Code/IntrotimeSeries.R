@@ -110,6 +110,7 @@ ggplot(data=fmri1_df)+
 ####################################################################
 # Basic time series models
 
+####################################################################
 # Gaussian white noise
 t = c(1:1000)
 
@@ -139,7 +140,9 @@ ggplot(data=acf_zt)+
   geom_hline(yintercept=0)+
   theme_minimal()+
   labs(x=expression(h),y=expression(ACF))
+####################################################################
 
+####################################################################
 # Moving average of order 1
 set.seed(314159)
 ma = arima.sim(n=1000,list(order = c(0,0,1),
@@ -172,7 +175,9 @@ ggplot(data=acf_ma)+
   geom_hline(yintercept=0)+
   theme_minimal()+
   labs(x=expression(h),y=expression(ACF))
+####################################################################
 
+####################################################################
 # autoregressive of order 1
 set.seed(31415)
 ar = arima.sim(n=1000,list(order = c(1,0,0),
@@ -205,5 +210,3 @@ ggplot(data=acf_ar)+
   theme_minimal()+
   labs(x=expression(h),y=expression(ACF))
 ####################################################################
-
-
