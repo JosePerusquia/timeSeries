@@ -18,8 +18,47 @@ library(forecast)     # Version 8.24.0
 ####################################################################
 
 ####################################################################
+# Functions
+plot_ARMA = function(mod){
+  t=time(mod)
+  vals=as.data.frame(mod)               
+  vals$t=t
+  
+  p=ggplot(data=vals,aes(x=t,y=x))+
+    geom_line()+
+    theme_minimal()+
+    labs(x='',y='')
+  return(p)
+}
+
+plot_acf =function(df_acf){
+  p=ggplot(data=df_acf)+
+    geom_point(aes(x=lag,y=val),size=1)+
+    geom_segment(x=lag,xend=lag,y=0,yend=val)+
+    geom_line(aes(x=lag,y=u),linetype=2,col='blue')+
+    geom_line(aes(x=lag,y=l),linetype=2,col='blue')+
+    geom_hline(yintercept=0)+
+    theme_minimal()+
+    labs(x=expression(h),y=expression(ACF))
+  return(p)
+}
+
+plot_pacf =function(df_pacf){
+  p=ggplot(data=df_pacf)+
+    geom_point(aes(x=lag,y=val),size=1)+
+    geom_segment(x=lag,xend=lag,y=0,yend=val)+
+    geom_line(aes(x=lag,y=u),linetype=2,col='blue')+
+    geom_line(aes(x=lag,y=l),linetype=2,col='blue')+
+    geom_hline(yintercept=0)+
+    theme_minimal()+
+    labs(x=expression(h),y=expression(PACF))
+  return(p)
+}
+####################################################################
+
+####################################################################
 # Air passenger data
-air = read.csv(here("Data/AirPassengers.csv"))
+air = read.csv(here("../Datos/AirPassengers.csv"))
 air = air%>%
   rename("x" = X.Passengers)
 air$t = c(1:144)
@@ -89,22 +128,24 @@ ggplot(data=air,aes(x=t,y=resExp,group = 1))+
   theme_minimal()
 
 # acf
-acf_exp = acf(air$resExp,lag.max = 30)
+acf_exp = acf(air$resExp,lag.max = 30,plot=F)
 lag = acf_exp$lag
 val = acf_exp$acf
 u = rep(1.96/sqrt(144),31)
 l = -u
 
 acf_exp = data.frame(lag,val,u,l)  
+plot_acf(acf_exp)
 
-ggplot(data=acf_exp)+
-  geom_point(aes(x=lag,y=val),size=.5)+
-  geom_segment(x=lag,xend=lag,y=0,yend=val)+
-  geom_line(aes(x=lag,y=u),linetype=2,col='blue')+
-  geom_line(aes(x=lag,y=l),linetype=2,col='blue')+
-  geom_hline(yintercept=0)+
-  theme_minimal()+
-  labs(x=expression(h),y=expression(ACF))
+# pacf
+pacf_exp = pacf(air$resExp,lag.max = 30,plot=F)
+lag = pacf_exp$lag
+val = pacf_exp$acf
+u = rep(1.96/sqrt(144),30)
+l = -u
+
+pacf_exp = data.frame(lag,val,u,l)  
+plot_pacf(pacf_exp)
 
 # Ljung-Box test
 Box.test(air$resExp,type='Ljung-Box')
@@ -122,7 +163,6 @@ ggplot(data=air,aes(x=t,y=xDif,group = 1))+
 
 # Log on the data and lag operator at 12 and 1
 air$log.x = log(air$x)
-
 airDiff12 = diff(air$log.x,lag=12)
 airDiff1 = diff(airDiff12,lag=1)
 t=c(1:length(airDiff1))
@@ -142,16 +182,109 @@ u = rep(1.96/sqrt(131),31)
 l = -u
 
 acf_diff = data.frame(lag,val,u,l)  
+plot_acf(acf_diff)
 
-ggplot(data=acf_diff)+
-  geom_point(aes(x=lag,y=val),size=.5)+
-  geom_segment(x=lag,xend=lag,y=0,yend=val)+
-  geom_line(aes(x=lag,y=u),linetype=2,col='blue')+
-  geom_line(aes(x=lag,y=l),linetype=2,col='blue')+
-  geom_hline(yintercept=0)+
-  theme_minimal()+
-  labs(x=expression(h),y=expression(ACF))
+# pacf
+pacf_diff = pacf(airDiff1,lag.max = 30,plot=F)
+lag = pacf_diff$lag
+val = pacf_diff$acf
+u = rep(1.96/sqrt(131),30)
+l = -u
+
+pacf_diff = data.frame(lag,val,u,l)  
+plot_pacf(pacf_diff)
 
 # Ljung-Box test
 Box.test(airDiff1,type='Ljung-Box')
 ####################################################################
+
+####################################################################
+# ARMA (1,1) for the lagged differences
+res1=arima(airDiff$airDiff1,order=c(1,0,1))
+summary(res1)
+
+#Residuales
+residuals=data.frame(t,y=res1$residuals)
+ggplot(data=residuals,aes(x=t,y=y,group = 1))+
+  labs(x='',y='')+
+  geom_line(col='black')+
+  geom_point(size=.5)+
+  theme_minimal()
+
+# acf
+acf_diff = acf(residuals$y,lag.max = 30,plot=F)
+lag = acf_diff$lag
+val = acf_diff$acf
+u = rep(1.96/sqrt(131),31)
+l = -u
+
+acf_diff = data.frame(lag,val,u,l)  
+plot_acf(acf_diff)
+
+# pacf
+pacf_diff = pacf(residuals$y,lag.max = 30,plot=F)
+lag = pacf_diff$lag
+val = pacf_diff$acf
+u = rep(1.96/sqrt(131),30)
+l = -u
+
+pacf_diff = data.frame(lag,val,u,l)  
+plot_pacf(pacf_diff)
+
+# Ljung-Box test
+Box.test(residuals$y,type='Ljung-Box')
+####################################################################
+
+####################################################################
+# ARMA (12,12) for the lagged differences
+res1=arima(airDiff$airDiff1,order=c(12,0,12))
+summary(res1)
+
+#Residuales
+residuals=data.frame(t,y=res1$residuals)
+ggplot(data=residuals,aes(x=t,y=y,group = 1))+
+  labs(x='',y='')+
+  geom_line(col='black')+
+  geom_point(size=.5)+
+  theme_minimal()
+
+# acf
+acf_diff = acf(residuals$y,lag.max = 30,plot=F)
+lag = acf_diff$lag
+val = acf_diff$acf
+u = rep(1.96/sqrt(131),31)
+l = -u
+
+acf_diff = data.frame(lag,val,u,l)  
+plot_acf(acf_diff)
+
+# pacf
+pacf_diff = pacf(residuals$y,lag.max = 30,plot=F)
+lag = pacf_diff$lag
+val = pacf_diff$acf
+u = rep(1.96/sqrt(131),30)
+l = -u
+
+pacf_diff = data.frame(lag,val,u,l)  
+plot_pacf(pacf_diff)
+
+# Ljung-Box test
+Box.test(residuals$y,type='Ljung-Box')
+
+# Prediction
+preds=forecast(res1,h=12)
+df_preds=data.frame(t=c(132:143),x=preds$mean,
+                    l=preds$lower[,2],u=preds$upper[,2])
+
+ggplot(data=airDiff,aes(x=t,y=airDiff1,group = 1))+
+  labs(x='',y='')+
+  geom_line(col='black')+
+  geom_point(size=.5)+
+  geom_line(data=df_preds,aes(x=t,y=x),col='lightblue')+
+  geom_line(data=df_preds,aes(x=t,y=l),col='skyblue4',
+            linetype=2)+
+  geom_line(data=df_preds,aes(x=t,y=u),col='skyblue4',
+            linetype=2)+
+  theme_minimal()
+####################################################################
+
