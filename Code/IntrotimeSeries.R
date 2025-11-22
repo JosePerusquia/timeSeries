@@ -13,84 +13,48 @@ library(ggthemes)     # Version 5.1.0
 library(dplyr)        # Version 1.1.4
 library(tidyquant)    # Version 1.0.11
 library(tseries)      # Version 0.10-58
+library(here)         # Version 1.0.1
+library(TSA)          # Version 1.3.1
+####################################################################
+
+####################################################################
+# Functions
+source(here('plot_ts.R'))
 ####################################################################
 
 ####################################################################
 # Johnson & Johnson Quarterly Earnings
 data(jj)
-jj_df = as.data.frame(jj)
-jj_df$t = time(jj)
-
-ggplot(data=jj_df,aes(x=t,y=x))+
-  labs(x='',y='')+
-  geom_line(col='black')+
-  geom_point(size=.5)+
-  theme_minimal()
+plot_TS(jj)
 ####################################################################
 
 ####################################################################
 # Global warming
 data(gtemp_both)
-globtemp = as.data.frame(gtemp_both)
-globtemp$t = time(gtemp_both)
-
-ggplot(data=globtemp,aes(x=t,y=x))+
-  labs(x='',y='')+
-  geom_line(col='black')+
-  geom_point(size=.5)+
-  theme_minimal()
+plot_TS(gtemp_both)
 ####################################################################
 
 ####################################################################
 # Speech
 data(speech)
-speech_df = as.data.frame(speech)
-speech_df$t = time(speech)
-
-ggplot(data=speech_df,aes(x=t,y=x))+
-  labs(x='',y='')+
-  geom_line(col='black')+
-  geom_point(size=.5)+
-  theme_minimal()
+plot_TS(speech)
 ####################################################################
 
 ####################################################################
 # Financial time series of Apple
-getSymbols("AAPL", from = '2024-09-21',
-           to = "2025-09-21",warnings = FALSE,
-           auto.assign = TRUE)
-
-AAPL_df=as.data.frame(AAPL)
-AAPL_df$t=as.Date(time(AAPL))
-ggplot(data=AAPL_df,aes(x=t,y=AAPL.Close))+
-  geom_line()+
-  geom_point(size=.5)+
-  theme_minimal()+
-  labs(x='',y='')
+getSymbols("AAPL", from = '2024-09-21',to = "2025-09-21",
+           warnings = FALSE,auto.assign = TRUE)
+AAPL=as.ts(AAPL$AAPL.Close)
+plot_TS(AAPL)
 ####################################################################
 
 ####################################################################
 #El Niño and Fish Population
 data(soi)
-soi_df=as.data.frame(soi)
-soi_df$t=time(soi)
-
-ggplot(data=soi_df,aes(x=t,y=x))+
-  geom_line()+
-  geom_point(size=.5)+
-  theme_minimal()+
-  labs(x='',y='')
-
+plot_TS(soi)
 
 data(rec)
-rec_df=as.data.frame(rec)
-rec_df$t=time(rec)
-
-ggplot(data=rec_df,aes(x=t,y=x))+
-  geom_line()+
-  geom_point(size=.5)+
-  theme_minimal()+
-  labs(x='',y='')
+plot_TS(rec)
 ####################################################################
 
 ####################################################################
@@ -108,105 +72,83 @@ ggplot(data=fmri1_df)+
 ####################################################################
 
 ####################################################################
-# Basic time series models
-
-####################################################################
 # Gaussian white noise
-t = c(1:1000)
-
-set.seed(31415)
-Zt = rnorm(1000)
-
-GWN = data.frame(t,Zt)
-ggplot(data=GWN,aes(x=t,y=Zt))+
-  geom_line()+
-  theme_minimal()+
-  labs(x='',y='')
+n = 1000
+set.seed(3141)
+Zt = as.ts(rnorm(n))
+plot_TS(Zt)
 
 # acf
 acf_zt = acf(Zt,lag.max = 30,plot=F)
 lag = acf_zt$lag
 val = acf_zt$acf
-u = rep(1.96/sqrt(1000),31)
+u = rep(1.96/sqrt(n),30)
 l = -u
 
 acf_zt = data.frame(lag,val,u,l)  
+plot_acf(acf_zt)
 
-ggplot(data=acf_zt)+
-  geom_point(aes(x=lag,y=val),size=.5)+
-  geom_segment(x=lag,xend=lag,y=0,yend=val)+
-  geom_line(aes(x=lag,y=u),linetype=2,col='blue')+
-  geom_line(aes(x=lag,y=l),linetype=2,col='blue')+
-  geom_hline(yintercept=0)+
-  theme_minimal()+
-  labs(x=expression(h),y=expression(ACF))
+# pacf
+pacf_zt = pacf(Zt,lag.max = 30,plot=F)
+lag = pacf_zt$lag
+val = pacf_zt$acf
+u = rep(1.96/sqrt(n),30)
+l = -u
+
+pacf_zt = data.frame(lag,val,u,l)  
+plot_pacf(pacf_zt)
 ####################################################################
 
 ####################################################################
-# Moving average of order 1
+# MA(1)
 set.seed(314159)
-ma = arima.sim(n=1000,list(order = c(0,0,1),
-                           ma=c(5),sd=sqrt(2)))
+ma = arima.sim(n=n,list(order = c(0,0,1),ma=c(.5),sd=4))
+plot_TS(ma)
 
-t=time(ma)
-vals=as.data.frame(ma)               
-vals$t=t
-
-ggplot(data=vals,aes(x=t,y=x))+
-  geom_line()+
-  theme_minimal()+
-  labs(x='',y='')
-
-# acf
+# ACF
 acf_ma = acf(ma,lag.max = 30,plot=F)
-
 lag = acf_ma$lag
 val = acf_ma$acf
-u = rep(1.96/sqrt(1000),31)
+u = rep(1.96/sqrt(n),30)
 l = -u
 
 acf_ma = data.frame(lag,val,u,l)  
+plot_acf(acf_ma)
 
-ggplot(data=acf_ma)+
-  geom_point(aes(x=lag,y=val),size=.5)+
-  geom_segment(x=lag,xend=lag,y=0,yend=val)+
-  geom_line(aes(x=lag,y=u),linetype=2,col='blue')+
-  geom_line(aes(x=lag,y=l),linetype=2,col='blue')+
-  geom_hline(yintercept=0)+
-  theme_minimal()+
-  labs(x=expression(h),y=expression(ACF))
-####################################################################
-
-####################################################################
-# autoregressive of order 1
-set.seed(31415)
-ar = arima.sim(n=1000,list(order = c(1,0,0),
-                           ar=c(.9),sd=sqrt(4)))
-
-t=time(ar)
-vals=as.data.frame(ar)               
-vals$t=t
-
-ggplot(data=vals,aes(x=t,y=x))+
-  geom_line()+
-  theme_minimal()+
-  labs(x='',y='')
-
-# acf
-acf_ar = acf(ar,lag.max = 50,plot=F)
-
-lag = acf_ar$lag
-val = acf_ar$acf
-u = rep(1.96/sqrt(1000),51)
+# PACF
+pacf_ma = pacf(ma,lag.max = 30,plot=F)
+lag = pacf_ma$lag
+val = pacf_ma$acf
+u = rep(1.96/sqrt(n),30)
 l = -u
 
+pacf_ma = data.frame(lag,val,u,l)  
+plot_pacf(pacf_ma)
+####################################################################
+
+####################################################################
+# AR(1)
+set.seed(31415)
+ar = arima.sim(n=n,list(order = c(1,0,0),ar=c(.9),sd=4))
+plot_TS(ar)
+
+# ACF
+acf_ar = acf(ar,lag.max = 30,plot=F)
+lag = acf_ar$lag
+val = acf_ar$acf
+u = rep(1.96/sqrt(n),30)
+l = -u
 acf_ar = data.frame(lag,val,u,l)  
-ggplot(data=acf_ar)+
-  geom_point(aes(x=lag,y=val),size=.5)+
-  geom_segment(x=lag,xend=lag,y=0,yend=val)+
-  geom_line(aes(x=lag,y=u),linetype=2,col='blue')+
-  geom_line(aes(x=lag,y=l),linetype=2,col='blue')+
-  geom_hline(yintercept=0)+
-  theme_minimal()+
-  labs(x=expression(h),y=expression(ACF))
+
+plot_acf(acf_ar)
+
+# PACF
+pacf_ar = pacf(ar,lag.max = 30,plot=F)
+lag = pacf_ar$lag
+val = pacf_ar$acf
+u = rep(1.96/sqrt(n),30)
+l = -u
+pacf_ar = data.frame(lag,val,u,l)  
+
+plot_pacf(pacf_ar)
 ####################################################################
